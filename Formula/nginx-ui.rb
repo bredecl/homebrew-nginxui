@@ -9,24 +9,31 @@ class NginxUi < Formula
 
   def install
     bin.install "nginx-ui"
+
+    # Crear wrapper con ruta explícita al config
+    (bin/"nginx-ui-wrapper").write <<~EOS
+      #!/bin/bash
+      exec "#{opt_bin}/nginx-ui" --config "#{etc}/nginxui/nginxui.ini"
+    EOS
+    chmod "+x", bin/"nginx-ui-wrapper"
   end
 
   def post_install
     require "securerandom"
     (etc/"nginxui").mkpath
     (var/"log/nginxui").mkpath
-  
+
     config_file = etc/"nginxui/nginxui.ini"
     return if config_file.exist?
-  
+
     secret_crypto = SecureRandom.hex(32)
     secret_node = SecureRandom.uuid
-  
+
     config_content = <<~EOS
       [app]
       PageSize = 20
       JwtSecret =
-  
+
       [server]
       Host =
       Port = 9000
@@ -35,10 +42,10 @@ class NginxUi < Formula
       EnableHTTPS = false
       SSLCert =
       SSLKey =
-  
+
       [database]
       Name = database
-  
+
       [log]
       EnableFileLog = false
       Dir =
@@ -46,22 +53,22 @@ class NginxUi < Formula
       MaxAge = 0
       MaxBackups = 0
       Compress = false
-  
+
       [auth]
       IPWhiteList =
       BanThresholdMinutes = 10
       MaxAttempts = 10
-  
+
       [backup]
       GrantedAccessPath =
-  
+
       [crypto]
       Secret = #{secret_crypto}
-  
+
       [node]
       Name =
       Secret = #{secret_node}
-  
+
       [openai]
       BaseUrl =
       Token =
@@ -70,55 +77,21 @@ class NginxUi < Formula
       APIType = OPEN_AI
       EnableCodeCompletion = false
       CodeCompletionModel =
-  
+
       [terminal]
       StartCmd = login
-  
+
       [webauthn]
       RPDisplayName =
       RPID =
       RPOrigins =
     EOS
-  
+
     config_file.write config_content
   end
 
-
-  def plist
-    <<~EOS
-      <?xml version="1.0" encoding="UTF-8"?>
-      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-      <plist version="1.0">
-      <dict>
-        <key>Label</key>
-        <string>nginx-ui</string>
-        <key>ProgramArguments</key>
-        <array>
-          <string>#{opt_bin}/nginx-ui</string>
-          <string>--config</string>
-          <string>#{etc}/nginxui/nginxui.ini</string>
-        </array>
-        <key>RunAtLoad</key>
-        <true/>
-        <key>KeepAlive</key>
-        <true/>
-        <key>WorkingDirectory</key>
-        <string>#{etc}</string>
-        <key>StandardErrorPath</key>
-        <string>#{var}/log/nginxui/nginxui.err.log</string>
-        <key>StandardOutPath</key>
-        <string>#{var}/log/nginxui/nginxui.out.log</string>
-      </dict>
-      </plist>
-    EOS
-  end
-
   service do
-    run [
-      opt_bin/"nginx-ui",
-      "--config",
-      etc/"nginxui/nginxui.ini"
-    ]
+    run [opt_bin/"nginx-ui-wrapper"]
     keep_alive true
     working_dir HOMEBREW_PREFIX
     log_path var/"log/nginxui/nginxui.log"
