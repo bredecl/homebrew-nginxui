@@ -9,17 +9,11 @@ class NginxUi < Formula
 
   def install
     bin.install "nginx-ui"
-
-    # Crear wrapper con ruta explícita al config
-    (bin/"nginx-ui-wrapper").write <<~EOS
-      #!/bin/bash
-      exec "#{opt_bin}/nginx-ui" --config "#{etc}/nginxui/nginxui.ini"
-    EOS
-    chmod "+x", bin/"nginx-ui-wrapper"
   end
 
   def post_install
     require "securerandom"
+
     (etc/"nginxui").mkpath
     (var/"log/nginxui").mkpath
 
@@ -47,12 +41,12 @@ class NginxUi < Formula
       Name = database
 
       [log]
-      EnableFileLog = false
-      Dir =
-      MaxSize = 0
-      MaxAge = 0
-      MaxBackups = 0
-      Compress = false
+      EnableFileLog = true
+      Dir = #{var}/log/nginxui
+      MaxSize = 10
+      MaxAge = 7
+      MaxBackups = 5
+      Compress = true
 
       [auth]
       IPWhiteList =
@@ -69,25 +63,33 @@ class NginxUi < Formula
       Name =
       Secret = #{secret_node}
 
-      [openai]
-      BaseUrl =
-      Token =
-      Proxy =
-      Model =
-      APIType = OPEN_AI
-      EnableCodeCompletion = false
-      CodeCompletionModel =
+      [nginx]
+      ConfigDir = /opt/homebrew/etc/nginx
+      ConfigPath = /opt/homebrew/etc/nginx/nginx.conf
+      PIDPath = /opt/homebrew/var/run/nginx.pid
+      AccessLogPath = /opt/homebrew/var/log/nginx/access.log
+      ErrorLogPath = /opt/homebrew/var/log/nginx/error.log
+      ReloadCmd = brew services restart nginx
+      TestConfigCmd = nginx -t
 
       [terminal]
       StartCmd = login
-
-      [webauthn]
-      RPDisplayName =
-      RPID =
-      RPOrigins =
     EOS
 
     config_file.write config_content
+
+    # Wrapper para ejecutar con config
+    wrapper = bin/"nginx-ui-wrapper"
+    wrapper.write <<~SH
+      #!/bin/bash
+      CONFIG_PATH="#{etc}/nginxui/nginxui.ini"
+      if [[ ! -f "$CONFIG_PATH" ]]; then
+        echo "Config file not found at $CONFIG_PATH"
+        exit 1
+      fi
+      exec "#{opt_bin}/nginx-ui" --config "$CONFIG_PATH"
+    SH
+    wrapper.chmod 0755
   end
 
   service do
