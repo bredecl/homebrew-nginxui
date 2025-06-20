@@ -1,3 +1,5 @@
+require "securerandom"
+
 class NginxUi < Formula
   desc "Web UI for managing nginx configuration"
   homepage "https://github.com/bredecl/homebrew-nginxui"
@@ -10,6 +12,20 @@ class NginxUi < Formula
   def install
     bin.install "nginx-ui"
     (etc/"nginxui").install "app.ini" unless (etc/"nginxui/app.ini").exist?
+  end
+
+  def post_install
+    (etc/"nginxui").mkpath
+    (var/"log/nginxui").mkpath
+
+    config_file = etc/"nginxui/app.ini"
+
+    unless config_file.exist?
+      cp "app.ini", config_file
+    end
+
+    secret = SecureRandom.hex(32)
+    inreplace config_file, /^Secret\s*=.*$/, "Secret = #{secret}"
   end
 
   def plist
