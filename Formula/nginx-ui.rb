@@ -10,8 +10,7 @@ class NginxUi < Formula
 def install
   bin.install "nginx-ui"
 
-  (etc/"nginxui").mkpath
-  (etc/"nginxui/app.ini").write <<~EOS
+  (etc/"nginxui").install "app.ini" unless (etc/"nginxui/app.ini").exist?
   EOS
 end
 
@@ -43,7 +42,17 @@ end
       </plist>
     EOS
   end
-
+  service do
+    run [
+      opt_bin/"nginx-ui",
+      "--config",
+      etc/"nginxui/app.ini"
+    ]
+    keep_alive true
+    working_dir HOMEBREW_PREFIX
+    log_path var/"log/nginxui.log"
+    error_log_path var/"log/nginxui.err.log"
+  end
   test do
     system "#{bin}/nginx-ui", "--version"
   end
