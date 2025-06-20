@@ -1,5 +1,3 @@
-require "securerandom"
-
 class NginxUi < Formula
   desc "Web UI for managing nginx configuration"
   homepage "https://github.com/bredecl/homebrew-nginxui"
@@ -11,128 +9,79 @@ class NginxUi < Formula
 
   def install
     bin.install "nginx-ui"
-    (etc/"nginxui").install "app.ini" unless (etc/"nginxui/app.ini").exist?
   end
 
   def post_install
+    require "securerandom"
     (etc/"nginxui").mkpath
     (var/"log/nginxui").mkpath
-  
+
     config_file = etc/"nginxui/app.ini"
-  
-    return if config_file.exist? # no sobreescribir si ya existe
-  
-    require "securerandom"
-    crypto_secret = SecureRandom.hex(32)
-    node_secret = SecureRandom.hex(32)
-  
+    return if config_file.exist?
+
+    secret_crypto = SecureRandom.hex(32)
+    secret_node = SecureRandom.uuid
+
     config_content = <<~EOS
       [app]
-      PageSize  = 20
+      PageSize = 20
       JwtSecret =
-  
+
       [server]
-      Host        =
-      Port        = 9000
-      RunMode     = debug
-      BaseUrl     =
+      Host =
+      Port = 9000
+      RunMode = debug
+      BaseUrl =
       EnableHTTPS = false
-      SSLCert     =
-      SSLKey      =
-  
+      SSLCert =
+      SSLKey =
+
       [database]
       Name = database
-  
+
       [log]
       EnableFileLog = false
-      Dir           =
-      MaxSize       = 0
-      MaxAge        = 0
-      MaxBackups    = 0
-      Compress      = false
-  
+      Dir =
+      MaxSize = 0
+      MaxAge = 0
+      MaxBackups = 0
+      Compress = false
+
       [auth]
-      IPWhiteList         =
+      IPWhiteList =
       BanThresholdMinutes = 10
-      MaxAttempts         = 10
-  
+      MaxAttempts = 10
+
       [backup]
       GrantedAccessPath =
-  
-      [casdoor]
-      Endpoint        =
-      ExternalUrl     =
-      ClientId        =
-      ClientSecret    =
-      CertificatePath =
-      Organization    =
-      Application     =
-      RedirectUri     =
-  
-      [cert]
-      RecursiveNameservers =
-      Email                =
-      CADir                =
-      RenewalInterval      = 7
-      HTTPChallengePort    = 9180
-  
-      [cluster]
-      Node =
-  
+
       [crypto]
-      Secret = #{crypto_secret}
-  
-      [http]
-      GithubProxy        =
-      InsecureSkipVerify = false
-  
-      [logrotate]
-      Enabled  = false
-      CMD      = logrotate /etc/logrotate.d/nginx
-      Interval = 1440
-  
-      [nginx]
-      AccessLogPath   = /opt/homebrew/var/log/nginx/access.log
-      ErrorLogPath    = /opt/homebrew/var/log/nginx/error.log
-      LogDirWhiteList =
-      ConfigDir       = /opt/homebrew/etc/nginx/sites-enabled
-      ConfigPath      = /opt/homebrew/etc/nginx/nginx.conf
-      PIDPath         = /opt/homebrew/var/run/nginx.pid
-      TestConfigCmd   =
-      ReloadCmd       =
-      RestartCmd      =
-      StubStatusPort  = 0
-      ContainerName   =
-  
+      Secret = #{secret_crypto}
+
       [node]
-      Name                 =
-      Secret               = #{node_secret}
-      SkipInstallation     = false
-      Demo                 = false
-      ICPNumber            =
-      PublicSecurityNumber =
-  
+      Name =
+      Secret = #{secret_node}
+
       [openai]
-      BaseUrl              =
-      Token                =
-      Proxy                =
-      Model                =
-      APIType              = OPEN_AI
+      BaseUrl =
+      Token =
+      Proxy =
+      Model =
+      APIType = OPEN_AI
       EnableCodeCompletion = false
-      CodeCompletionModel  =
-  
+      CodeCompletionModel =
+
       [terminal]
       StartCmd = login
-  
+
       [webauthn]
       RPDisplayName =
-      RPID          =
-      RPOrigins     =
+      RPID =
+      RPOrigins =
     EOS
-  
+
     config_file.write config_content
   end
-
 
   def plist
     <<~EOS
@@ -141,7 +90,7 @@ class NginxUi < Formula
       <plist version="1.0">
       <dict>
         <key>Label</key>
-        <string>cl.brede.nginxui</string>
+        <string>nginx-ui</string>
         <key>ProgramArguments</key>
         <array>
           <string>#{opt_bin}/nginx-ui</string>
@@ -163,7 +112,7 @@ class NginxUi < Formula
     EOS
   end
 
-   service do
+  service do
     run [
       opt_bin/"nginx-ui",
       "--config",
