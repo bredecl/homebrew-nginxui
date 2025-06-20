@@ -20,23 +20,119 @@ class NginxUi < Formula
   
     config_file = etc/"nginxui/app.ini"
   
-    unless config_file.exist?
-      cp "app.ini", config_file
-    end
+    return if config_file.exist? # no sobreescribir si ya existe
   
+    require "securerandom"
     crypto_secret = SecureRandom.hex(32)
-    node_secret = `uuidgen`.chomp
+    node_secret = SecureRandom.hex(32)
   
-    text = File.read(config_file)
+    config_content = <<~EOS
+      [app]
+      PageSize  = 20
+      JwtSecret =
   
-    # Reemplaza el Secret en la sección [crypto]
-    text.gsub!(/(\[crypto\](?:.*\n)*?Secret\s*=\s*).*/, "\\1#{crypto_secret}")
+      [server]
+      Host        =
+      Port        = 9000
+      RunMode     = debug
+      BaseUrl     =
+      EnableHTTPS = false
+      SSLCert     =
+      SSLKey      =
   
-    # Reemplaza el Secret en la sección [node]
-    text.gsub!(/(\[node\](?:.*\n)*?Secret\s*=\s*).*/, "\\1#{node_secret}")
+      [database]
+      Name = database
   
-    File.write(config_file, text)
+      [log]
+      EnableFileLog = false
+      Dir           =
+      MaxSize       = 0
+      MaxAge        = 0
+      MaxBackups    = 0
+      Compress      = false
+  
+      [auth]
+      IPWhiteList         =
+      BanThresholdMinutes = 10
+      MaxAttempts         = 10
+  
+      [backup]
+      GrantedAccessPath =
+  
+      [casdoor]
+      Endpoint        =
+      ExternalUrl     =
+      ClientId        =
+      ClientSecret    =
+      CertificatePath =
+      Organization    =
+      Application     =
+      RedirectUri     =
+  
+      [cert]
+      RecursiveNameservers =
+      Email                =
+      CADir                =
+      RenewalInterval      = 7
+      HTTPChallengePort    = 9180
+  
+      [cluster]
+      Node =
+  
+      [crypto]
+      Secret = #{crypto_secret}
+  
+      [http]
+      GithubProxy        =
+      InsecureSkipVerify = false
+  
+      [logrotate]
+      Enabled  = false
+      CMD      = logrotate /etc/logrotate.d/nginx
+      Interval = 1440
+  
+      [nginx]
+      AccessLogPath   = /opt/homebrew/var/log/nginx/access.log
+      ErrorLogPath    = /opt/homebrew/var/log/nginx/error.log
+      LogDirWhiteList =
+      ConfigDir       = /opt/homebrew/etc/nginx/sites-enabled
+      ConfigPath      = /opt/homebrew/etc/nginx/nginx.conf
+      PIDPath         = /opt/homebrew/var/run/nginx.pid
+      TestConfigCmd   =
+      ReloadCmd       =
+      RestartCmd      =
+      StubStatusPort  = 0
+      ContainerName   =
+  
+      [node]
+      Name                 =
+      Secret               = #{node_secret}
+      SkipInstallation     = false
+      Demo                 = false
+      ICPNumber            =
+      PublicSecurityNumber =
+  
+      [openai]
+      BaseUrl              =
+      Token                =
+      Proxy                =
+      Model                =
+      APIType              = OPEN_AI
+      EnableCodeCompletion = false
+      CodeCompletionModel  =
+  
+      [terminal]
+      StartCmd = login
+  
+      [webauthn]
+      RPDisplayName =
+      RPID          =
+      RPOrigins     =
+    EOS
+  
+    config_file.write config_content
   end
+
 
   def plist
     <<~EOS
@@ -67,7 +163,7 @@ class NginxUi < Formula
     EOS
   end
 
-  service do
+   service do
     run [
       opt_bin/"nginx-ui",
       "--config",
