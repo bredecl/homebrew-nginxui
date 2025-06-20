@@ -7,12 +7,10 @@ class NginxUi < Formula
 
   depends_on :macos
 
-def install
-  bin.install "nginx-ui"
-
-  (etc/"nginxui").install "app.ini" unless (etc/"nginxui/app.ini").exist?
-  EOS
-end
+  def install
+    bin.install "nginx-ui"
+    (etc/"nginxui").install "app.ini" unless (etc/"nginxui/app.ini").exist?
+  end
 
   def plist
     <<~EOS
@@ -42,6 +40,7 @@ end
       </plist>
     EOS
   end
+
   service do
     run [
       opt_bin/"nginx-ui",
@@ -53,6 +52,7 @@ end
     log_path var/"log/nginxui.log"
     error_log_path var/"log/nginxui.err.log"
   end
+
   test do
     system "#{bin}/nginx-ui", "--version"
   end
