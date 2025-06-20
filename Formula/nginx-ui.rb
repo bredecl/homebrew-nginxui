@@ -17,15 +17,25 @@ class NginxUi < Formula
   def post_install
     (etc/"nginxui").mkpath
     (var/"log/nginxui").mkpath
-
+  
     config_file = etc/"nginxui/app.ini"
-
+  
     unless config_file.exist?
       cp "app.ini", config_file
     end
-
-    secret = SecureRandom.hex(32)
-    inreplace config_file, /^Secret\s*=.*$/, "Secret = #{secret}"
+  
+    crypto_secret = SecureRandom.hex(32)
+    node_secret = `uuidgen`.chomp
+  
+    text = File.read(config_file)
+  
+    # Reemplaza el Secret en la sección [crypto]
+    text.gsub!(/(\[crypto\](?:.*\n)*?Secret\s*=\s*).*/, "\\1#{crypto_secret}")
+  
+    # Reemplaza el Secret en la sección [node]
+    text.gsub!(/(\[node\](?:.*\n)*?Secret\s*=\s*).*/, "\\1#{node_secret}")
+  
+    File.write(config_file, text)
   end
 
   def plist
