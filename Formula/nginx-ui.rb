@@ -105,9 +105,9 @@ class NginxUi < Formula
         <key>WorkingDirectory</key>
         <string>#{etc}</string>
         <key>StandardErrorPath</key>
-        <string>/var/log/nginxui.err.log</string>
+        <string>#{var}/log/nginxui/nginxui.err.log</string>
         <key>StandardOutPath</key>
-        <string>/var/log/nginxui.out.log</string>
+        <string>#{var}/log/nginxui/nginxui.out.log</string>
       </dict>
       </plist>
     EOS
@@ -121,8 +121,8 @@ class NginxUi < Formula
     ]
     keep_alive true
     working_dir HOMEBREW_PREFIX
-    log_path var/"log/nginxui.log"
-    error_log_path var/"log/nginxui.err.log"
+    log_path var/"log/nginxui/nginxui.log"
+    error_log_path var/"log/nginxui/nginxui.err.log"
   end
 
   test do
