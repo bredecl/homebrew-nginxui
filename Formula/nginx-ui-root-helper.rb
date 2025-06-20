@@ -1,21 +1,30 @@
 class NginxUiRootHelper < Formula
-  desc "Helper to install nginx-ui as a root service using launchd (with warning)"
+  desc "Helper to install nginx-ui as a root launchd service"
   homepage "https://github.com/bredecl/homebrew-nginxui"
-  url "https://example.com/fake-source.tar.gz" # No source needed
   version "1.0.0"
-  sha256 "d41d8cd98f00b204e9800998ecf8427e" # dummy checksum for empty archive
+
+  # No URL needed — this is a meta formula
+  disable! date: "2025-01-01", because: "used as a local-only installer script"
 
   def install
     (bin/"nginx-ui-root-setup").write <<~SH
       #!/bin/bash
-      set -e
+      set -euo pipefail
 
       PLIST_PATH="/Library/LaunchDaemons/cl.brede.nginxui.plist"
       CONFIG_PATH="/opt/homebrew/etc/nginxui/nginxui.ini"
       LOG_DIR="/opt/homebrew/var/log/nginxui"
       BIN_PATH="/opt/homebrew/bin/nginx-ui"
 
-      echo "Creating plist at $PLIST_PATH..."
+      if [ ! -f "$CONFIG_PATH" ]; then
+        echo "Error: Config file not found at $CONFIG_PATH"
+        echo "Please run: brew reinstall bredecl/nginxui/nginx-ui"
+        exit 1
+      fi
+
+      sudo mkdir -p "$LOG_DIR"
+
+      echo "Creating launchd plist at $PLIST_PATH..."
 
       sudo tee "$PLIST_PATH" > /dev/null <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -36,7 +45,7 @@ class NginxUiRootHelper < Formula
   <key>KeepAlive</key>
   <true/>
   <key>WorkingDirectory</key>
-  <string>/opt/homebrew/etc/nginxui</string>
+  <string>/opt/homebrew</string>
   <key>StandardOutPath</key>
   <string>#{LOG_DIR}/nginxui.out.log</string>
   <key>StandardErrorPath</key>
@@ -45,14 +54,14 @@ class NginxUiRootHelper < Formula
 </plist>
 EOF
 
-      echo "Fixing permissions..."
+      echo "Setting permissions..."
       sudo chown root:wheel "$PLIST_PATH"
       sudo chmod 644 "$PLIST_PATH"
 
-      echo "Bootstrapping root service..."
+      echo "Starting root-level nginx-ui service..."
       sudo launchctl bootstrap system "$PLIST_PATH"
       sudo launchctl enable system/cl.brede.nginxui
-      echo "nginx-ui root service installed and started."
+      echo "✅ nginx-ui is now running as root."
     SH
 
     chmod 0755, bin/"nginx-ui-root-setup"
@@ -60,15 +69,17 @@ EOF
 
   def caveats
     <<~EOS
-      ⚠️  This script configures nginx-ui to run as root using launchd.
+      ⚠️ This script configures nginx-ui as a *root* service using launchd.
 
-      - Use only if you need root-level access for nginx configuration tasks.
-      - Not recommended for general use — running services as root can be risky.
-      - To install and start the root service:
-          sudo #{bin}/nginx-ui-root-setup
+      Only use it if nginx-ui needs root access for configuration validation or management.
+
+      To start the service as root:
+        sudo nginx-ui-root-setup
 
       To stop the service:
-          sudo launchctl bootout system /Library/LaunchDaemons/cl.brede.nginxui.plist
+        sudo launchctl bootout system /Library/LaunchDaemons/cl.brede.nginxui.plist
+
+      Be cautious with any services running as root.
     EOS
   end
 
