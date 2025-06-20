@@ -16,7 +16,7 @@ class NginxUi < Formula
     (etc/"nginxui").mkpath
     (var/"log/nginxui").mkpath
   
-    config_file = etc/"nginxui/app.ini"
+    config_file = etc/"nginxui/nginxui.ini"
     return if config_file.exist?
   
     secret_crypto = SecureRandom.hex(32)
@@ -96,7 +96,7 @@ class NginxUi < Formula
         <array>
           <string>#{opt_bin}/nginx-ui</string>
           <string>--config</string>
-          <string>#{etc}/nginxui/app.ini</string>
+          <string>#{etc}/nginxui/nginxui.ini</string>
         </array>
         <key>RunAtLoad</key>
         <true/>
@@ -117,7 +117,7 @@ class NginxUi < Formula
     run [
       opt_bin/"nginx-ui",
       "--config",
-      etc/"nginxui/app.ini"
+      etc/"nginxui/nginxui.ini"
     ]
     keep_alive true
     working_dir HOMEBREW_PREFIX
